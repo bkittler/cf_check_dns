@@ -5,9 +5,9 @@ cf_check_dns.py is python tool to check cloudflare dns export
 
 This tool takes a txt file containing a json export of the dns cloudflare entries as an entry and displays the status of each entry: 
 	
-	HTTPS / HTTP test with the return code 
+* HTTPS / HTTP test with the return code 
 	
-	ping of the ip
+* ping of the ip
 
 ## Installation
 
