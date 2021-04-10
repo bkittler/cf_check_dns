@@ -53,7 +53,7 @@ Response ping : (Ping OK or KO)
 
 To make diff between two result file, you can make :
 
-    diff -u result1.dns-json.txt result2.dns-json.txt
+    diff result1.dns-json.txt result2.dns-json.txt
 
 
 ## Dependencies
