@@ -43,7 +43,7 @@ def main(argv):
     check(file)
 
 
-def ping_name(name):
+def ping_name(name, cloudflare):
     """
     Function to resolve name and ping this host.
     print the result of ping
@@ -59,11 +59,12 @@ def ping_name(name):
 
     """
     # make resolution
-    try:
-        addr1 = socket.gethostbyname_ex(name)
-        print("Resolution -> {}".format(addr1[2]))
-    except:
-        print("Resolution failed")
+    if cloudflare == 0:
+        try:
+            addr1 = socket.gethostbyname_ex(name)
+            print("Resolution -> {}".format(addr1[2]))
+        except:
+            print("Resolution failed")
 
     # import pdb; pdb.set_trace()
     try:
@@ -77,7 +78,7 @@ def ping_name(name):
         print("Response ping : failed to connect")
 
 
-def request_name(name):
+def request_name(name, cloudflare):
     """
     Function to resolve name and send https or http request to this host.
     print the Response code and if it fail, launch a ping to this host
@@ -95,11 +96,12 @@ def request_name(name):
     """
 
     # make resolution
-    try:
-        addr1 = socket.gethostbyname_ex(name)
-        print("Resolution -> {}".format(addr1[2]))
-    except:
-        print("Resolution failed")
+    if cloudflare == 0:
+        try:
+            addr1 = socket.gethostbyname_ex(name)
+            print("Resolution -> {}".format(addr1[2]))
+        except:
+            print("Resolution failed")
 
     try:
         url = "https://" + format(name)
@@ -113,10 +115,10 @@ def request_name(name):
             print("Response code HTTP:" + str(response.status_code))
         except requests.exceptions.Timeout:
             print("Response code HTTP/HTTPS: Timeout occurred")
-            ping_name(name)
+            ping_name(name, cloudflare)
         except requests.ConnectionError:
             print("Response code HTTP/HTTPS: failed to connect")
-            ping_name(name)
+            ping_name(name, cloudflare)
     except requests.ConnectionError:
         try:
             url = "http://" + format(name)
@@ -124,10 +126,10 @@ def request_name(name):
             print("Response code HTTP:" + str(response.status_code))
         except requests.exceptions.Timeout:
             print("Response code HTTP/HTTPS: Timeout occurred")
-            ping_name(name)
+            ping_name(name, cloudflare)
         except requests.ConnectionError:
             print("Response code HTTP/HTTPS: failed to connect")
-            ping_name(name)
+            ping_name(name, cloudflare)
 
 
 def check(file_to_check):
@@ -188,14 +190,14 @@ def check(file_to_check):
                   "  Type {}".format(datajson['type']) +
                   "-> {}".format(datajson['content']))
             # import pdb; pdb.set_trace()
-            request_name(datajson['name'])
+            request_name(datajson['name'],0)
         # Type A or CNAME throw Cloudflare
         elif (datajson['proxied'] is True and
               (datajson['type'] == "A" or datajson['type'] == "CNAME")):
             print("Testing : {}".format(datajson['name']) +
                   "  Type {}".format(datajson['type']) + "-> Cloudflare")
             # import pdb; pdb.set_trace()
-            request_name(datajson['name'])
+            request_name(datajson['name'],1)
         # Type CAA, TXT or AAAA throw Cloudflare
         elif (datajson['proxied'] is True and
               (datajson['type'] == "CAA" or datajson['type'] == "TXT" or
