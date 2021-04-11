@@ -44,10 +44,11 @@ Testing : host (domain_identified)  Type A (Entry Type)-> X.X.X.X (IP identified
 
 Resolution -> ['X.X.X.X', 'X.X.X.X'] (Real resolution of domain identified)
 
-Response code HTTPS : (Response code)
+Response code HTTPS/HTTP : (Response code or error)
 
 Response ping : (Ping OK or KO)
 
+Entry verification : (dns entry verification for TXT, CAA, AAAA)
 
 ## Diff
 
