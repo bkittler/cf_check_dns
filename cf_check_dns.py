@@ -8,6 +8,7 @@ import os
 import json
 import socket
 import requests
+import subprocess
 
 
 # Python script to check all dns entry from cloudflare json export
@@ -51,7 +52,10 @@ def ping_name(name, cloudflare):
     Parameters
     ----------
     name : string
-    This variable contain the Name of json line (datajson['name'])
+        This variable contain the Name of json line (datajson['name'])
+    cloudflare : int
+        This variable is 1 if Cloudflare proxyt is used
+        or if resolution not requested (already made)
 
     Returns
     -------
@@ -87,7 +91,9 @@ def request_name(name, cloudflare):
     Parameters
     ----------
     name : string
-    This variable contain the Name of json line (datajson['name'])
+        This variable contain the Name of json line (datajson['name'])
+    cloudflare : int
+        This variable is 1 if Cloudflare proxyt is used
 
     Returns
     -------
@@ -114,22 +120,56 @@ def request_name(name, cloudflare):
             response = requests.head(url, allow_redirects=True, timeout=5)
             print("Response code HTTP:" + str(response.status_code))
         except requests.exceptions.Timeout:
-            print("Response code HTTP/HTTPS: Timeout occurred")
-            ping_name(name, cloudflare)
+            print("Response code HTTP: Timeout occurred")
+            ping_name(name, 1)
         except requests.ConnectionError:
             print("Response code HTTP/HTTPS: failed to connect")
-            ping_name(name, cloudflare)
+            ping_name(name, 1)
     except requests.ConnectionError:
         try:
             url = "http://" + format(name)
             response = requests.head(url, allow_redirects=True, timeout=5)
             print("Response code HTTP:" + str(response.status_code))
         except requests.exceptions.Timeout:
-            print("Response code HTTP/HTTPS: Timeout occurred")
-            ping_name(name, cloudflare)
+            print("Response code HTTP: Timeout occurred")
+            ping_name(name, 1)
         except requests.ConnectionError:
             print("Response code HTTP/HTTPS: failed to connect")
-            ping_name(name, cloudflare)
+            ping_name(name, 1)
+
+
+def resolv_name(name, cloudflare, dnstype):
+    """
+    Function to resolve name and print entry for TXT, CAA, AAAA.
+
+    Parameters
+    ----------
+    name : string
+        This variable contain the Name of json line (datajson['name'])
+    cloudflare : int
+        This variable is 1 if Cloudflare proxy is used
+    dnstype : string
+        This variable contain the type of dns entry (datajson['type'])
+        
+    Returns
+    -------
+    None.
+
+    """
+    # make resolution
+    if cloudflare == 0 or dnstype != "TXT":
+        try:
+            addr1 = socket.gethostbyname_ex(name)
+            print("Resolution -> {}".format(addr1[2]))
+        except:
+            print("Resolution failed")
+
+    # Retrieve dns entry
+    try:
+        resolv1 = subprocess.Popen(["dig","-t",format(dnstype),format(name),"+short"], stdout=subprocess.PIPE).communicate()[0] 
+        print("Entry verification : {}".format(resolv1))
+    except requests:
+        print("Entry verification : failed")
 
 
 def check(file_to_check):
@@ -189,15 +229,15 @@ def check(file_to_check):
             print("Testing : {}".format(datajson['name']) +
                   "  Type {}".format(datajson['type']) +
                   "-> {}".format(datajson['content']))
-            # import pdb; pdb.set_trace()
             request_name(datajson['name'],0)
+
         # Type A or CNAME throw Cloudflare
         elif (datajson['proxied'] is True and
               (datajson['type'] == "A" or datajson['type'] == "CNAME")):
             print("Testing : {}".format(datajson['name']) +
                   "  Type {}".format(datajson['type']) + "-> Cloudflare")
-            # import pdb; pdb.set_trace()
             request_name(datajson['name'],1)
+
         # Type CAA, TXT or AAAA throw Cloudflare
         elif (datajson['proxied'] is True and
               (datajson['type'] == "CAA" or datajson['type'] == "TXT" or
@@ -205,8 +245,8 @@ def check(file_to_check):
             print("Testing : {}".format(datajson['name']) +
                   "  Type {}".format(datajson['type']) +
                   "-> Cloudflare")
-            # import pdb; pdb.set_trace()
-            print("Ignored")
+            resolv_name(datajson['name'], 1, datajson['type'])
+
         # Type CAA, TXT or AAAA NOT throw Cloudflare
         elif (datajson['proxied'] is False and
               (datajson['type'] == "CAA" or datajson['type'] == "TXT" or
@@ -214,32 +254,20 @@ def check(file_to_check):
             print("Testing : {}".format(datajson['name']) +
                   "  Type {}".format(datajson['type']) +
                   "-> {}".format(datajson['content']))
-            # import pdb; pdb.set_trace()
-            print("Ignored")
-        # Not Type A, CNAME, CAA, TXT or AAAA NOT throw Cloudflare
+            resolv_name(datajson['name'], 0, datajson['type'])
+
+        # Type CAA, TXT or AAAA NOT throw Cloudflare
         elif (datajson['proxied'] is False and
-              (datajson['type'] != "CAA" or datajson['type'] != "TXT" or
-              datajson['type'] != "AAAA" or datajson['type'] != "CAA" or
-              datajson['type'] != "TXT" or datajson['type'] != "AAAA")):
+              datajson['type'] == "MX"):
             print("Testing : {}".format(datajson['name']) +
                   "  Type {}".format(datajson['type']) +
                   "-> {}".format(datajson['content']))
-            # import pdb; pdb.set_trace()
-            print("Ignored")
-        # Not Type A, CNAME, CAA, TXT or AAAA throw Cloudflare
-        elif (datajson['proxied'] is True and
-              (datajson['type'] != "CAA" or datajson['type'] != "TXT" or
-              datajson['type'] != "AAAA" or datajson['type'] != "CAA" or
-              datajson['type'] != "TXT" or datajson['type'] != "AAAA")):
-            print("Testing : {}".format(datajson['name']) +
-                  "  Type {}".format(datajson['type']) + "-> Cloudflare")
-            # import pdb; pdb.set_trace()
-            print("Ignored")
+            ping_name(datajson['name'],0)
+            
         else:
             print("Testing : {}".format(datajson['name']) +
                   "  Type {}".format(datajson['type']) +
                   "-> {}".format(datajson['content']))
-            # import pdb; pdb.set_trace()
             print("Ignored")
     exit('end')
 
